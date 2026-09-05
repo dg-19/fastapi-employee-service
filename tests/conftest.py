@@ -3,8 +3,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from auth.auth import hash_password
 from database import Base, get_db
 from main import app
+from models import User
 
 
 TEST_DATABASE_URL = "postgresql+psycopg://postgres:postgres@localhost:5432/fastapi_employee_test"
@@ -40,6 +42,11 @@ def clean_database():
 
 
 @pytest.fixture
+def client():
+    return TestClient(app)
+
+
+@pytest.fixture
 def employee_data():
     return {
         "name": "John",
@@ -51,15 +58,53 @@ def employee_data():
 
 
 @pytest.fixture
-def client():
-    return TestClient(app)
+def admin_user():
+    db = TestingSessionLocal()
+
+    user = User(
+        email="admin@test.com",
+        password_hash=hash_password("admin123"),
+        role="admin",
+        is_active=True
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    db.close()
+
+    return user
 
 
 @pytest.fixture
-def created_employee(client, employee_data):
+def admin_token(client, admin_user):
+    response = client.post(
+        "/auth/login",
+        json={
+            "email": "admin@test.com",
+            "password": "admin123"
+        }
+    )
+
+    assert response.status_code == 200
+
+    return response.json()["access_token"]
+
+
+@pytest.fixture
+def auth_headers(admin_token):
+    return {
+        "Authorization": f"Bearer {admin_token}"
+    }
+
+
+@pytest.fixture
+def created_employee(client, employee_data, auth_headers):
     response = client.post(
         "/employees/",
-        json=employee_data
+        json=employee_data,
+        headers=auth_headers
     )
 
     assert response.status_code == 201

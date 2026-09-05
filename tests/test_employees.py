@@ -12,10 +12,11 @@ def test_get_employees():
     assert response.status_code == 200
 
 
-def test_create_employee(employee_data):
+def test_create_employee(client, employee_data, auth_headers):
     response = client.post(
         "/employees/",
-        json=employee_data
+        json=employee_data,
+        headers=auth_headers
     )
 
     assert response.status_code == 201
@@ -30,24 +31,38 @@ def test_create_employee(employee_data):
     assert "id" in data
 
 
-def test_get_employee_not_found():
-    response = client.get("/employees/99999")
+def test_get_employee_not_found(client, auth_headers):
+    response = client.get(
+        "/employees/99999",
+        headers=auth_headers
+    )
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Employee not found"
 
-def test_create_employee_duplicate_email(employee_data):
-
-    response1 = client.post("/employees/", json=employee_data)
+def test_create_employee_duplicate_email(
+    client,
+    employee_data,
+    auth_headers
+):
+    response1 = client.post(
+        "/employees/",
+        json=employee_data,
+        headers=auth_headers
+    )
 
     assert response1.status_code == 201
 
-    response2 = client.post("/employees/", json=employee_data)
+    response2 = client.post(
+        "/employees/",
+        json=employee_data,
+        headers=auth_headers
+    )
 
     assert response2.status_code == 409
     assert response2.json()["detail"] == "Employee already exists"
 
-def test_create_employee_invalid_data():
+def test_create_employee_invalid_data(client, auth_headers):
     response = client.post(
         "/employees/",
         json={
@@ -56,12 +71,13 @@ def test_create_employee_invalid_data():
             "department": "IT",
             "salary": "abc",
             "age": 30
-        }
+        },
+        headers=auth_headers
     )
 
     assert response.status_code == 422
 
-def test_create_employee_missing_field():
+def test_create_employee_missing_field(client, auth_headers):
     response = client.post(
         "/employees/",
         json={
@@ -69,7 +85,8 @@ def test_create_employee_missing_field():
             "department": "IT",
             "salary": 50000,
             "age": 30
-        }
+        },
+        headers=auth_headers
     )
 
     assert response.status_code == 422
@@ -105,7 +122,7 @@ def test_create_employee_missing_field():
 #     assert data["salary"] == 60000
 #     assert data["age"] == 31
 
-def test_update_employee(client, created_employee):
+def test_update_employee(client, created_employee, auth_headers):
     employee_id = created_employee["id"]
 
     response = client.put(
@@ -116,7 +133,8 @@ def test_update_employee(client, created_employee):
             "department": "Engineering",
             "salary": 60000,
             "age": 31
-        }
+        },
+        headers=auth_headers
     )
 
     assert response.status_code == 200
@@ -143,17 +161,19 @@ def test_update_employee(client, created_employee):
 
 #     assert get_response.status_code == 404
 
-def test_delete_employee(client, created_employee):
+def test_delete_employee(client, created_employee, auth_headers):
     employee_id = created_employee["id"]
 
     response = client.delete(
-        f"/employees/{employee_id}"
+        f"/employees/{employee_id}",
+        headers=auth_headers
     )
 
     assert response.status_code == 200
 
     get_response = client.get(
-        f"/employees/{employee_id}"
+        f"/employees/{employee_id}",
+        headers=auth_headers
     )
 
     assert get_response.status_code == 404
