@@ -89,6 +89,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Run database migration
+        run: |
+          kubectl delete job fastapi-migration --ignore-not-found
+
+          sed "s|IMAGE_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}/fastapi-employee-service:${{ github.sha }}|g" \
+            k8s/migration-job.yaml | kubectl apply -f -
+
+          kubectl wait --for=condition=complete job/fastapi-migration --timeout=120s
+
       - name: Update FastAPI image
         run: |
           kubectl set image deployment/fastapi-employee \
