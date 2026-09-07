@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+
+metadata:
+  name: fastapi-migration
+
+spec:
+  backoffLimit: 3
+
+  template:
+    spec:
+      restartPolicy: Never
+
+      containers:
+        - name: migration
+          image: deepademo/fastapi-employee-service:6f538aca7d037ef0ef883386bf82d32e61ec961e
+
+          command:
+            - alembic
+            - upgrade
+            - head
+
+          envFrom:
+            - configMapRef:
+                name: fastapi-config
+
+            - secretRef:
+                name: fastapi-secret
